@@ -7,13 +7,21 @@ import io.github.wechaty.user.Room;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.concurrent.ExecutionException;
 
 public class CommonUtil {
 
     private static Logger logger = LoggerFactory.getLogger(CommonUtil.class);
+
+    //"2020-10-07T21:42:35Z"
+    //"yyyy-MM-dd'T'HH:mm:ss'Z'"	2001-07-04T12:08:56Z
+    public static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+    private static SimpleDateFormat simpleDateFormat = new SimpleDateFormat(DATE_TIME_FORMAT);
 
     public static int generateRandomBetween(int min, int max) {
         //Generate random int value from 50 to 100
@@ -23,10 +31,22 @@ public class CommonUtil {
         return randomInt;
     }
 
+    public static Date getDatetimeFromString(String dateString) throws ParseException {
+        return simpleDateFormat.parse(dateString);
+    }
 
-    public static String getDateTimeWithZone() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss Z");
+    public static String getCurrentDateTimeString() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT);
         return ZonedDateTime.now().format(formatter);
+    }
+
+    public static String getDateTimeByTimestamp(long timestamp) {
+        return simpleDateFormat.format(new Date(timestamp));
+    }
+
+    public static String getDateTimeStringByDate(Date date) {
+
+        return simpleDateFormat.format(date);
     }
 
     public static Room getRoomByTopic(Wechaty wechaty, String topic) {

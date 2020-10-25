@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.List;
 
-import static io.github.charles.util.CommonUtil.getDateTimeWithZone;
+import static io.github.charles.util.CommonUtil.getCurrentDateTimeString;
 import static io.github.charles.util.CommonUtil.getTopicByRoom;
 
 public final class SingleWechaty {
@@ -48,18 +48,18 @@ public final class SingleWechaty {
         wechaty.onMessage(message -> handleMessage(wechaty, message));
 
         wechaty.onLogin(contactSelf -> {
-            logger.info(String.format("%s logged in at %s", contactSelf.name(), getDateTimeWithZone()));
+            logger.info(String.format("%s logged in at %s", contactSelf.name(), getCurrentDateTimeString()));
             handleLogin(wechaty, contactSelf);
         });
 
         wechaty.on(EventEnum.LOGOUT, logOut -> {
             Arrays.stream(logOut)
                     .forEach(l -> logger.info(String.format("[%s] %s logged out at %s",
-                            l.getClass(), l, getDateTimeWithZone())));
+                            l.getClass(), l, getCurrentDateTimeString())));
             wechaty.stop();
             try {
                 Thread.sleep(60000);
-                logger.info("after thread sleep at " + getDateTimeWithZone());
+                logger.info("after thread sleep at " + getCurrentDateTimeString());
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -82,7 +82,7 @@ public final class SingleWechaty {
         }
 
         if (singleContact != null) {
-            singleContact.say(String.format("%s at %s", message, getDateTimeWithZone()));
+            singleContact.say(String.format("%s at %s", message, getCurrentDateTimeString()));
         } else {
             logger.error(String.format("Contact not found %s", contactId));
         }
@@ -128,7 +128,7 @@ public final class SingleWechaty {
                 contact.sync();
             }
             if (contact.getId().equals("wxid_1194601945911")) {
-                contact.say(String.format("您的专属机器人 %s logged in at %s", contactSelf.name(), getDateTimeWithZone()));
+                contact.say(String.format("您的专属机器人 %s logged in at %s", contactSelf.name(), getCurrentDateTimeString()));
             }
         });
 
