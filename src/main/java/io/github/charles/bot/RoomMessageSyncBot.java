@@ -2,7 +2,9 @@ package io.github.charles.bot;
 
 import io.github.charles.model.MessageRoute;
 import io.github.wechaty.Wechaty;
+import io.github.wechaty.filebox.FileBox;
 import io.github.wechaty.user.Contact;
+import io.github.wechaty.user.Image;
 import io.github.wechaty.user.Message;
 import io.github.wechaty.user.Room;
 import org.slf4j.Logger;
@@ -36,11 +38,22 @@ public class RoomMessageSyncBot implements Bot {
         Contact from = message.from();
         Room room = message.room();
 
+        if (room == null) {
+            Image image = message.toImage();
+            logger.info("Image String" + image.toString());
+            FileBox fileBox = image.artwork();
+            logger.info("FileBox name:" + fileBox.getName());
+            logger.info("FileBox box type:" + fileBox.getBoxType());
+            logger.info("FileBox base64:" + fileBox.getBase64());
+            //FileBox.fromJson(fileBox);
+            Message m = from.say(fileBox);
+            logger.info(String.valueOf(m));
+        }
+
         getMessageRoutes().stream()
                 .filter(messageRoute -> messageRoute.getSourceName().equals(getTopicByRoom(room)))
                 .forEach(messageRoute -> {
                     Room destRoom = getRoomByTopic(wechaty, messageRoute.getDestinationName());
-                    logger.info("room image string:" + message.toString());
                     destRoom.say(String.format("[%s in %s]:%n%s", from.name(), getTopicByRoom(room), "图片上传中..."));
                     destRoom.say(message.toImage().artwork());
                 });

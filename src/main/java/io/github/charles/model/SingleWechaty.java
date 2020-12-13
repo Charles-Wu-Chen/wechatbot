@@ -1,7 +1,9 @@
 package io.github.charles.model;
 
+import io.github.charles.bot.DingDongBot;
 import io.github.charles.bot.RecomendationBot;
 import io.github.charles.bot.RoomMessageSyncBot;
+import io.github.charles.util.CacheHelper;
 import io.github.wechaty.Wechaty;
 import io.github.wechaty.filebox.FileBox;
 import io.github.wechaty.io.github.wechaty.schemas.EventEnum;
@@ -14,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 
 import static io.github.charles.util.CommonUtil.getCurrentDateTimeString;
@@ -25,6 +28,7 @@ public final class SingleWechaty {
     private static volatile SingleWechaty instance;
     private static Wechaty wechaty;
     public static String loginUserName = StringUtils.EMPTY;
+    private static CacheHelper cacheHelper = new CacheHelper();
 
     public String value;
 
@@ -45,7 +49,7 @@ public final class SingleWechaty {
             logger.info("Online Image: https://wechaty.github.io/qrcode/" + qrcode);
         });
 
-        wechaty.onMessage(message -> handleMessage(wechaty, message));
+        wechaty.onMessage(message -> this.handleMessage(message));
 
         wechaty.onLogin(contactSelf -> {
             logger.info(String.format("%s logged in at %s", contactSelf.name(), getCurrentDateTimeString()));
@@ -139,31 +143,31 @@ public final class SingleWechaty {
 
     }
 
-    private static void handleMessage(Wechaty bot, Message message) {
+    private static void handleMessage(Message message) {
         Contact from = message.from();
         Room room = message.room();
 
+        String messageInBaser64 = Base64.getEncoder().encodeToString(message.toString().getBytes());
+        synchronized (cacheHelper) {
+            if (cacheHelper.isDuplicateMessage(messageInBaser64)) {
+                return;
+            } else {
+                cacheHelper.addMessageToCache(messageInBaser64);
+            }
+        }
+
         RoomMessageSyncBot roomMessageSyncBot = new RoomMessageSyncBot();
         RecomendationBot recomendationBot = new RecomendationBot();
+        DingDongBot dingDongBot = new DingDongBot();
         switch (message.type()) {
             case Text:
-
-
                 String text = message.text();
 
                 if (message.self()) { // skip message from self, also to avoid infinite loop
-                    logger.info("message from self");
+                    logger.info("message from self, " + message.text());
                     return;
                 }
-
-                if (StringUtils.equals(text, "ding")) {
-                    if (room != null) {
-                        room.say("dong");
-                    } else {
-                        from.say("dong");
-                    }
-                }
-
+                dingDongBot.handleTextMessage(message, wechaty);
                 roomMessageSyncBot.handleTextMessage(message, wechaty);
                 recomendationBot.handleTextMessage(message, wechaty);
                 return;
