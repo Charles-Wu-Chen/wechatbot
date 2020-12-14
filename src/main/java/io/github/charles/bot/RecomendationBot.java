@@ -187,4 +187,10 @@ public class RecomendationBot implements Bot {
         recommendationDao.delete(recommendation);
 
     }
+
+
+    @Override
+    public void handleContactMessage(Message message, Wechaty wechaty) {
+
+    }
 }

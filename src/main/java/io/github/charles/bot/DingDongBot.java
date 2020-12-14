@@ -40,4 +40,9 @@ public class DingDongBot implements Bot {
     public void handleImageMessage(Message message, Wechaty wechaty) {
 
     }
+
+    @Override
+    public void handleContactMessage(Message message, Wechaty wechaty) {
+
+    }
 }

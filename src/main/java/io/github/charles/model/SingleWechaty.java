@@ -1,5 +1,6 @@
 package io.github.charles.model;
 
+import io.github.charles.bot.Bot;
 import io.github.charles.bot.DingDongBot;
 import io.github.charles.bot.RecomendationBot;
 import io.github.charles.bot.RoomMessageSyncBot;
@@ -147,6 +148,11 @@ public final class SingleWechaty {
         Contact from = message.from();
         Room room = message.room();
 
+        if (message.self()) { // skip message from self, also to avoid infinite loop
+            logger.info("message from self, " + message);
+            return;
+        }
+
         String messageInBaser64 = Base64.getEncoder().encodeToString(message.toString().getBytes());
         synchronized (cacheHelper) {
             if (cacheHelper.isDuplicateMessage(messageInBaser64)) {
@@ -156,17 +162,14 @@ public final class SingleWechaty {
             }
         }
 
-        RoomMessageSyncBot roomMessageSyncBot = new RoomMessageSyncBot();
-        RecomendationBot recomendationBot = new RecomendationBot();
-        DingDongBot dingDongBot = new DingDongBot();
+        Bot roomMessageSyncBot = new RoomMessageSyncBot();
+        Bot recomendationBot = new RecomendationBot();
+        Bot dingDongBot = new DingDongBot();
         switch (message.type()) {
             case Text:
                 String text = message.text();
 
-                if (message.self()) { // skip message from self, also to avoid infinite loop
-                    logger.info("message from self, " + message.text());
-                    return;
-                }
+
                 dingDongBot.handleTextMessage(message, wechaty);
                 roomMessageSyncBot.handleTextMessage(message, wechaty);
                 recomendationBot.handleTextMessage(message, wechaty);
@@ -174,8 +177,11 @@ public final class SingleWechaty {
             case Image:
                 roomMessageSyncBot.handleImageMessage(message, wechaty);
                 return;
+            case Contact:
+                roomMessageSyncBot.handleContactMessage(message, wechaty);
             default:
                 logger.info("unhandled message with type:" + message.type());
+                logger.info("unhandled message:" + message);
         }
     }
 

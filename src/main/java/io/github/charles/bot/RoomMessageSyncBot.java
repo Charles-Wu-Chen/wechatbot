@@ -3,6 +3,7 @@ package io.github.charles.bot;
 import io.github.charles.model.MessageRoute;
 import io.github.wechaty.Wechaty;
 import io.github.wechaty.filebox.FileBox;
+import io.github.wechaty.schemas.ContactQueryFilter;
 import io.github.wechaty.user.Contact;
 import io.github.wechaty.user.Image;
 import io.github.wechaty.user.Message;
@@ -13,8 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.github.charles.util.CommonUtil.getRoomByTopic;
-import static io.github.charles.util.CommonUtil.getTopicByRoom;
+import static io.github.charles.util.CommonUtil.*;
 
 public class RoomMessageSyncBot implements Bot {
 
@@ -58,6 +58,27 @@ public class RoomMessageSyncBot implements Bot {
                     destRoom.say(message.toImage().artwork());
                 });
 
+    }
+
+
+    @Override
+    public void handleContactMessage(Message message, Wechaty wechaty) {
+        Contact from = message.from();
+        Room room = message.room();
+
+        if (room != null) {
+            ContactQueryFilter contactQueryFilter = new ContactQueryFilter();
+            //contactQueryFilter.setId("wxid_1194601945911"); //wuchen
+            List<Contact> contacts = wechaty.getContactManager().findAll(contactQueryFilter);
+            contacts.stream()
+                    .forEach(contact -> {
+                        logger.info("is ready : " + contact.isReady());
+                        logger.info(String.format("contact ID:%s, contact name:%s", contact.getId(), contact.name()));
+                        if (contact.getId().equals("wxid_1194601945911")) {
+                            room.say(contact);
+                        }
+                    });
+        }
     }
 
     //TODO externalize this to properties and initialization

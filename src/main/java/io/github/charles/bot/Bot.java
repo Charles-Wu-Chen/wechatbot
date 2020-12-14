@@ -8,4 +8,6 @@ public interface Bot {
     void handleTextMessage(Message message, Wechaty wechaty);
 
     void handleImageMessage(Message message, Wechaty wechaty);
+
+    void handleContactMessage(Message message, Wechaty wechaty);
 }
