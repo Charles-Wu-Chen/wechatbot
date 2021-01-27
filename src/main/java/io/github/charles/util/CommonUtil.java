@@ -12,7 +12,6 @@ import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
-import java.util.concurrent.ExecutionException;
 
 public class CommonUtil {
 
@@ -62,7 +61,7 @@ public class CommonUtil {
             return room.getTopic().get();
         } catch (InterruptedException e) {
             e.printStackTrace();
-        } catch (ExecutionException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return "";

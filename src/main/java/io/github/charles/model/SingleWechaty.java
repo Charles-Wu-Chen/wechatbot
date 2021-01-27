@@ -2,7 +2,7 @@ package io.github.charles.model;
 
 import io.github.charles.bot.Bot;
 import io.github.charles.bot.DingDongBot;
-import io.github.charles.bot.RecomendationBot;
+import io.github.charles.bot.RecommendationBot;
 import io.github.charles.bot.RoomMessageSyncBot;
 import io.github.charles.util.CacheHelper;
 import io.github.wechaty.Wechaty;
@@ -28,6 +28,11 @@ public final class SingleWechaty {
     private static final String PUPPET_HOSTIE_TOKEN = System.getenv("WECHATY_PUPPET_HOSTIE_TOKEN");
     private static volatile SingleWechaty instance;
     private static Wechaty wechaty;
+
+    public static Wechaty getWechaty() {
+        return wechaty;
+    }
+
     public static String loginUserName = StringUtils.EMPTY;
     private static CacheHelper cacheHelper = new CacheHelper();
 
@@ -163,7 +168,7 @@ public final class SingleWechaty {
         }
 
         Bot roomMessageSyncBot = new RoomMessageSyncBot();
-        Bot recomendationBot = new RecomendationBot();
+        Bot recomendationBot = new RecommendationBot();
         Bot dingDongBot = new DingDongBot();
         switch (message.type()) {
             case Text:

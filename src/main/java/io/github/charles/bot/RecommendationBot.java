@@ -4,6 +4,7 @@ package io.github.charles.bot;
 import io.github.charles.bot.builder.RecommendationConverter;
 import io.github.charles.bot.dao.RecommendationDao;
 import io.github.charles.bot.model.Recommendation;
+import io.github.charles.util.MessageType;
 import io.github.wechaty.Wechaty;
 import io.github.wechaty.user.Contact;
 import io.github.wechaty.user.Message;
@@ -14,23 +15,32 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static io.github.charles.util.CommonUtil.getDateTimeByTimestamp;
 import static io.github.charles.util.CommonUtil.getDatetimeFromString;
 
-public class RecomendationBot implements Bot {
+public class RecommendationBot implements Bot {
 
-    private static Logger logger = LoggerFactory.getLogger(RecomendationBot.class);
-    private static final List<String> LIST_TRIGGERWORD = Arrays.asList("推荐", "添加推荐", "删除推荐");
+    private static Logger logger = LoggerFactory.getLogger(RecommendationBot.class);
+    private static final List<String> LIST_TRIGGERWORD = Arrays.asList("请问", "添加keyword", "删除keyword", "KEYWORD");
     private static final String SELF_MENTIONED = "@机器人";
     private static final String WUCHEN_WECHAT_ID = "wxid_1194601945911";
 
+    public RecommendationDao getRecommendationDao() {
+        return recommendationDao;
+    }
+
+    public void setRecommendationDao(RecommendationDao recommendationDao) {
+        this.recommendationDao = recommendationDao;
+    }
+
     private RecommendationDao recommendationDao;
 
-    public RecomendationBot() {
+    public RecommendationBot() {
         recommendationDao = new RecommendationDao();
-
     }
+
 
     @Override
     public void handleTextMessage(Message message, Wechaty wechaty) {
@@ -40,14 +50,26 @@ public class RecomendationBot implements Bot {
             Contact from = message.from();
             Room room = message.room();
             String text = mentionText(message);
-            if (text.startsWith("推荐")) {
-                doRecommendation(from, room, text);
-            } else if (text.startsWith("添加推荐")) {
+            if (text.toUpperCase().startsWith("添加keyword".toUpperCase())) {
                 createRecommendation(from, room, text);
-            } else if (text.startsWith("删除推荐")) {
+            } else if (text.toUpperCase().startsWith("删除keyword".toUpperCase())) {
                 deleteRecommendation(from, room, text);
+            } else if (text.toUpperCase().startsWith("KEYWORD")) {
+                listAllKeywords(from, room);
+            } else if (text.toUpperCase().startsWith("请问")) {
+                doRecommendation(from, room, text, wechaty);
             }
 
+        }
+    }
+
+    private void listAllKeywords(Contact from, Room room) {
+        List<String> questions = recommendationDao.queryAll().stream()
+                .map(r -> r.getQuestion()).distinct()
+                .collect(Collectors.toList());
+
+        if (questions.size() > 0) {
+            wechatReply(from, room, questions.toString());
         }
     }
 
@@ -89,10 +111,15 @@ public class RecomendationBot implements Bot {
     }
 
     private void createRecommendation(Contact from, Room room, String text) {
-        String textInput = text.replace("添加推荐", "").trim();
-        Recommendation recommendation = RecommendationConverter.fromAddString(textInput, from.getId());
+        String textInput = text.toUpperCase().replace("添加keyword".toUpperCase(), "").trim();
+        Recommendation recommendation;
+        if (room == null && from != null) {
+            recommendation = RecommendationConverter.getCardTypeRecommendation(textInput, from);
+        } else {
+            recommendation = RecommendationConverter.fromAddString(textInput, from);
+        }
         if (recommendation == null) {
-            wechatReply(from, room, String.format("Failed to add %s, correct format is @机器人 添加推荐 <问题> <答案>",
+            wechatReply(from, room, String.format("Failed to add %s, correct format is @机器人 添加keyword <问题> <答案>",
                     textInput));
         } else {
             recommendationDao.create(recommendation);
@@ -102,7 +129,7 @@ public class RecomendationBot implements Bot {
         }
     }
 
-    private void wechatReply(Contact from, Room room, String textReply) {
+    private void wechatReply(Contact from, Room room, Object textReply) {
         if (room != null) {
             room.say(textReply);
         } else {
@@ -110,21 +137,29 @@ public class RecomendationBot implements Bot {
         }
     }
 
-    private void doRecommendation(Contact from, Room room, String text) {
-        String questionText = text.replace("推荐", "").trim();
+    private void doRecommendation(Contact from, Room room, String text, Wechaty wechaty) {
+        String questionText = text.trim();
         logger.info("questionText is :" + questionText);
 
-        List<Recommendation> recommendations = recommendationDao.queryByKeyword(questionText);
+        List<Recommendation> recommendations = recommendationDao.queryAll();
+
+        recommendations = recommendations.stream()
+                .filter(r -> text.toUpperCase().contains(r.getQuestion().toUpperCase()))
+                .collect(Collectors.toList());
 
         if (recommendations.size() == 0) {
-            wechatReply(from, room, String.format("暂时没有关于%s的推荐， 请添加。 格式：%s",
-                    questionText, "@机器人 添加推荐 " + questionText + " <推荐内容>"));
+            wechatReply(from, room, "试试 @机器人 keyword ");
         }
 
         recommendations.forEach(recommendation -> {
-            wechatReply(from, room, String.format("%s by %s at %s",
-                    recommendation.getAnswer(), recommendation.getCreatedBy(),
-                    getDateTimeByTimestamp(recommendation.getCreationTimestamp())));
+            if (MessageType.Text.equals(recommendation.getType())) {
+                wechatReply(from, room, String.format("%s by %s at %s",
+                        recommendation.getAnswer(), recommendation.getCreatedBy(),
+                        getDateTimeByTimestamp(recommendation.getCreationTimestamp())));
+            } else if (MessageType.Contact.equals(recommendation.getType())) {
+                Contact c = new Contact(wechaty, recommendation.getAnswer());
+                wechatReply(from, room, c);
+            }
         });
     }
 
@@ -135,15 +170,18 @@ public class RecomendationBot implements Bot {
         //        boolean isStartWithTriggerWord =
         //            LIST_TRIGGERWORD.stream().anyMatch(s -> message.mentionText().startsWith(s));
 
+
+        String messageText = message.text();
+
         boolean isSelfMentioned = message.text().startsWith(SELF_MENTIONED);
-        if (!isSelfMentioned) {
-            return false;
+        if (isSelfMentioned) {
+            messageText = StringUtils.strip(message.text().substring(SELF_MENTIONED.length()).trim());
         }
 
 
-        String mentionText = StringUtils.strip(message.text().substring(SELF_MENTIONED.length()).trim());
+        String finalMessageText = messageText;
         boolean isStartWithTriggerWord =
-                    LIST_TRIGGERWORD.stream().anyMatch(s -> mentionText.startsWith(s));
+                    LIST_TRIGGERWORD.stream().anyMatch(s -> finalMessageText.toUpperCase().startsWith(s.toUpperCase()));
         return isStartWithTriggerWord;
     }
 
@@ -152,6 +190,7 @@ public class RecomendationBot implements Bot {
         return;
     }
 
+    @SuppressWarnings("checkstyle:MethodLength")
     public static void main(String[] args) {
         RecommendationDao recommendationDao = new RecommendationDao();
 
@@ -183,9 +222,26 @@ public class RecomendationBot implements Bot {
             System.out.println(recommendation.getAnswer());
         });
 
-        Recommendation recommendation = recommendationDao.queryByPrimaryKey("test", 1603446179082L);
-        recommendationDao.delete(recommendation);
+        List<String> questions = recommendations.stream()
+                .map(r -> r.getQuestion()).distinct()
+                .collect(Collectors.toList());
 
+        System.out.println(questions);
+
+
+
+        String testQuery = "adfas test tsafd";
+        recommendations = recommendationDao.queryAll();
+
+        recommendations = recommendations.stream()
+                .filter(r -> testQuery.toUpperCase().contains(r.getQuestion().toUpperCase()))
+                .collect(Collectors.toList());
+
+        recommendations.forEach(System.out::println);
+
+        //To clear all test keyword
+        recommendations = recommendationDao.queryByKeyword("test");
+        recommendations.forEach(r -> recommendationDao.delete(r));
     }
 
 

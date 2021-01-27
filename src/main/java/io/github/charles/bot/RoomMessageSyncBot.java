@@ -3,7 +3,6 @@ package io.github.charles.bot;
 import io.github.charles.model.MessageRoute;
 import io.github.wechaty.Wechaty;
 import io.github.wechaty.filebox.FileBox;
-import io.github.wechaty.schemas.ContactQueryFilter;
 import io.github.wechaty.user.Contact;
 import io.github.wechaty.user.Image;
 import io.github.wechaty.user.Message;
@@ -13,8 +12,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
-import static io.github.charles.util.CommonUtil.*;
+import static io.github.charles.util.CommonUtil.getRoomByTopic;
+import static io.github.charles.util.CommonUtil.getTopicByRoom;
 
 public class RoomMessageSyncBot implements Bot {
 
@@ -65,19 +67,31 @@ public class RoomMessageSyncBot implements Bot {
     public void handleContactMessage(Message message, Wechaty wechaty) {
         Contact from = message.from();
         Room room = message.room();
+        //Contact c = message.toContact();
+        Contact c = new Contact(wechaty, "wxid_1194601945911");
+        Future<String> contactId = wechaty.getPuppet().messageContact(message.getId());
 
+        while (!contactId.isDone()) {
+            System.out.println("Calculating...");
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        try {
+            String result = contactId.get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+        //java.util.concurrent.CompletableFuture@2973fd57[Completed exceptionally: java.util.concurrent.CompletionException:
+        // io.grpc.StatusRuntimeException: INTERNAL:
+        // Wechaty Puppet Unsupported API Error. Learn More At https://github.com/wechaty/wechaty-puppet/wiki/Compatibility]
         if (room != null) {
-            ContactQueryFilter contactQueryFilter = new ContactQueryFilter();
-            //contactQueryFilter.setId("wxid_1194601945911"); //wuchen
-            List<Contact> contacts = wechaty.getContactManager().findAll(contactQueryFilter);
-            contacts.stream()
-                    .forEach(contact -> {
-                        logger.info("is ready : " + contact.isReady());
-                        logger.info(String.format("contact ID:%s, contact name:%s", contact.getId(), contact.name()));
-                        if (contact.getId().equals("wxid_1194601945911")) {
-                            room.say(contact);
-                        }
-                    });
+            room.say(c);
         }
     }
 

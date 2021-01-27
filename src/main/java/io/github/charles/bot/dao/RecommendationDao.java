@@ -11,18 +11,31 @@ import io.github.charles.bot.model.Recommendation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 public class RecommendationDao {
 
     private static final String TABLE_NAME = "Recommendation";
     private AmazonDynamoDB client;
+    private DynamoDB dynamoDB;
+
+    public void setDynamoDB(DynamoDB dynamoDB) {
+        this.dynamoDB = dynamoDB;
+    }
+
     private Table table;
+
+    public void setTable(Table table) {
+        this.table = table;
+    }
+
     private static Logger logger = LoggerFactory.getLogger(RecommendationDao.class);
 
     public RecommendationDao() {
         client = AmazonDynamoDBClientBuilder.defaultClient();
-        DynamoDB dynamoDB = new DynamoDB(client);
+        dynamoDB = new DynamoDB(client);
         table = dynamoDB.getTable(TABLE_NAME);
     }
 
@@ -61,9 +74,10 @@ public class RecommendationDao {
 
         Map<String, Object> expressionAttributeValues = new HashMap<String, Object>();
 
-        expressionAttributeValues.put(":type", "Text");
+        expressionAttributeValues.put(":time", LocalDateTime.of(2020, 1, 1, 0, 0, 0)
+                .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
 
-        ItemCollection<ScanOutcome> items = table.scan("AnswerType = :type", // FilterExpression
+        ItemCollection<ScanOutcome> items = table.scan("CreationTimestamp > :time", // FilterExpression
                 null, // ProjectionExpression
                 null, // ExpressionAttributeNames - not used in this example
                 expressionAttributeValues);
@@ -87,7 +101,7 @@ public class RecommendationDao {
                         "CreationTimestamp", recommendation.getCreationTimestamp()))
                 .withString("Answer", recommendation.getAnswer())
                 .withNumber("AnswerRank", recommendation.getRank())
-                .withString("AnswerType", recommendation.getType())
+                .withString("AnswerType", recommendation.getType().name())
                 .withString("createdBy", recommendation.getCreatedBy());
 
         table.putItem(item);

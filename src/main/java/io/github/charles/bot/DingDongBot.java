@@ -29,7 +29,8 @@ public class DingDongBot implements Bot {
                 } catch (ExecutionException e) {
                     e.printStackTrace();
                 }
-                room.say("dong");
+                Contact c = new Contact(wechaty, "wxid_1194601945911");
+                room.say(c);
             } else {
                 from.say("dong");
             }
