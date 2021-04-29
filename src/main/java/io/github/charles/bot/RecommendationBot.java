@@ -23,7 +23,7 @@ import static io.github.charles.util.CommonUtil.getDatetimeFromString;
 public class RecommendationBot implements Bot {
 
     private static Logger logger = LoggerFactory.getLogger(RecommendationBot.class);
-    private static final List<String> LIST_TRIGGERWORD = Arrays.asList("请问", "添加keyword", "删除keyword", "KEYWORD");
+    private static final List<String> LIST_TRIGGERWORD = Arrays.asList("请问机器人", "添加keyword", "删除keyword", "KEYWORD");
     private static final String SELF_MENTIONED = "@机器人";
     private static final String WUCHEN_WECHAT_ID = "wxid_1194601945911";
 
@@ -43,6 +43,11 @@ public class RecommendationBot implements Bot {
 
 
     @Override
+    public String usage() {
+        return null;
+    }
+
+    @Override
     public void handleTextMessage(Message message, Wechaty wechaty) {
         if (!checkTriggerFormat(message)) {
             return;
@@ -56,7 +61,7 @@ public class RecommendationBot implements Bot {
                 deleteRecommendation(from, room, text);
             } else if (text.toUpperCase().startsWith("KEYWORD")) {
                 listAllKeywords(from, room);
-            } else if (text.toUpperCase().startsWith("请问")) {
+            } else if (text.toUpperCase().startsWith("请问机器人")) {
                 doRecommendation(from, room, text, wechaty);
             }
 
@@ -148,7 +153,7 @@ public class RecommendationBot implements Bot {
                 .collect(Collectors.toList());
 
         if (recommendations.size() == 0) {
-            wechatReply(from, room, "试试 @机器人 keyword ");
+            wechatReply(from, room, "试试 请问机器人 keyword ");
         }
 
         recommendations.forEach(recommendation -> {

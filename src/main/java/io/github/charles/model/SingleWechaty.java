@@ -16,6 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
@@ -28,12 +29,13 @@ public final class SingleWechaty {
     private static final String PUPPET_HOSTIE_TOKEN = System.getenv("WECHATY_PUPPET_HOSTIE_TOKEN");
     private static volatile SingleWechaty instance;
     private static Wechaty wechaty;
+    private static String localMessageId = StringUtils.EMPTY;
+    private static String loginUserName = StringUtils.EMPTY;
 
     public static Wechaty getWechaty() {
         return wechaty;
     }
 
-    public static String loginUserName = StringUtils.EMPTY;
     private static CacheHelper cacheHelper = new CacheHelper();
 
     public String value;
@@ -136,8 +138,7 @@ public final class SingleWechaty {
             logger.info(String.format("contact ID:%s, contact name:%s", contact.getId(), contact.name()));
             if (!contact.isReady()) {
                 contact.sync();
-            }
-            if (contact.getId().equals("wxid_1194601945911")) {
+            } else if (contact.getId().equals("wxid_1194601945911")) {
                 contact.say(String.format("您的专属机器人 %s logged in at %s", contactSelf.name(), getCurrentDateTimeString()));
             }
         });
@@ -153,11 +154,12 @@ public final class SingleWechaty {
         Contact from = message.from();
         Room room = message.room();
 
-        if (message.self()) { // skip message from self, also to avoid infinite loop
-            logger.info("message from self, " + message);
+
+        if (shallSkipMessage(message, from)) {
             return;
         }
 
+        localMessageId = message.getId();
         String messageInBaser64 = Base64.getEncoder().encodeToString(message.toString().getBytes());
         synchronized (cacheHelper) {
             if (cacheHelper.isDuplicateMessage(messageInBaser64)) {
@@ -172,9 +174,6 @@ public final class SingleWechaty {
         Bot dingDongBot = new DingDongBot();
         switch (message.type()) {
             case Text:
-                String text = message.text();
-
-
                 dingDongBot.handleTextMessage(message, wechaty);
                 roomMessageSyncBot.handleTextMessage(message, wechaty);
                 recomendationBot.handleTextMessage(message, wechaty);
@@ -188,6 +187,36 @@ public final class SingleWechaty {
                 logger.info("unhandled message with type:" + message.type());
                 logger.info("unhandled message:" + message);
         }
+    }
+
+    private static boolean shallSkipMessage(Message message, Contact from) {
+        logger.info("listen message, messageId:{}, isFromRoom:{}, fromName:{}, toName:{},  content:{}, time:{}",
+                message.getId(), message.room() != null,
+                message.from().name(), message.to().name(),
+                message.text(), LocalDateTime.now());
+        if (localMessageId.equals(message.getId())) { // 处理重复消息
+            logger.info("skip duplication message with same id");
+            return true;
+        }
+
+        if (from == null || from.name() == null) { //skip if contact is not ready.
+            logger.info("skip empty contact");
+            return true;
+        }
+        if (loginUserName.equals(message.from().name())) { // 自己发送出去的消息不做处理
+            logger.info("skip contact self message");
+            return true;
+        }
+        if (message.self()) { // skip message from self, also to avoid infinite loop
+            logger.info("message from self, " + message);
+            return true;
+        }
+
+        if (localMessageId.equals(message.getId())) { // 处理重复消息
+            logger.info("skip duplication message with same id");
+            return true;
+        }
+        return false;
     }
 
     private static void handleImage(Message message) {

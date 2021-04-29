@@ -57,11 +57,14 @@ public class CommonUtil {
     }
 
     public static String getTopicByRoom(Room room) {
+        if (room == null) return "";
+
         try {
             return room.getTopic().get();
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (Exception e) {
+            logger.error(room.getId());
             e.printStackTrace();
         }
         return "";
