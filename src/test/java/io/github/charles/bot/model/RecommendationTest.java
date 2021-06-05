@@ -1,5 +1,6 @@
 package io.github.charles.bot.model;
 
+import io.github.charles.util.MessageType;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -14,6 +15,6 @@ public class RecommendationTest {
                 .build();
 
         assertEquals(1, recommendation.getRank());
-        assertEquals("Text", recommendation.getType());
+        assertEquals(MessageType.Text, recommendation.getType());
     }
 }

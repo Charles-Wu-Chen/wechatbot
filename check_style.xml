@@ -8,6 +8,7 @@
     <module name="NewlineAtEndOfFile">
         <!-- to handle Windows files checked out as UNIX format CR-LF line separators -->
         <property name="lineSeparator" value="lf"/>
+        <property name="severity" value="ignore" />
     </module>
     <module name="FileLength"/>
     <module name="SuppressWarningsFilter"/>
@@ -36,9 +37,9 @@
 
         <!-- Checks for Size Violations.                    -->
         <!-- See http://checkstyle.sf.net/config_sizes.html -->
-        <module name="LineLength">
-            <property name="max" value="140"/>
-        </module>
+<!--        <module name="LineLength">-->
+<!--            <property name="max" value="140"/>-->
+<!--        </module>-->
         <module name="MethodLength">
             <property name="max" value="40"/>
         </module>

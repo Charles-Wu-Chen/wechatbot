@@ -1,10 +1,11 @@
 package io.github.charles.bot;
 
 
+import io.github.charles.adaptor.out.chatapi.TianChatApiImpl;
+import io.github.charles.application.out.ChatApiPort;
 import io.github.charles.bot.builder.RecommendationConverter;
 import io.github.charles.bot.dao.RecommendationDao;
 import io.github.charles.bot.model.Recommendation;
-import io.github.charles.util.MessageType;
 import io.github.wechaty.Wechaty;
 import io.github.wechaty.user.Contact;
 import io.github.wechaty.user.Message;
@@ -17,15 +18,19 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static io.github.charles.bot.util.MessageUtil.extractQuestion;
 import static io.github.charles.util.CommonUtil.getDateTimeByTimestamp;
 import static io.github.charles.util.CommonUtil.getDatetimeFromString;
 
 public class RecommendationBot implements Bot {
 
     private static Logger logger = LoggerFactory.getLogger(RecommendationBot.class);
-    private static final List<String> LIST_TRIGGERWORD = Arrays.asList("请问机器人", "添加keyword", "删除keyword", "KEYWORD");
+    private static final String ASK_KEYWORD = "请问";
+    private static final List<String> LIST_TRIGGERWORD = Arrays.asList(ASK_KEYWORD, "添加keyword", "删除keyword", "KEYWORD");
     private static final String SELF_MENTIONED = "@机器人";
     private static final String WUCHEN_WECHAT_ID = "wxid_1194601945911";
+
+    private static ChatApiPort chatApi = new TianChatApiImpl();
 
     public RecommendationDao getRecommendationDao() {
         return recommendationDao;
@@ -44,26 +49,44 @@ public class RecommendationBot implements Bot {
 
     @Override
     public String usage() {
-        return null;
+        return "触发词：" + SELF_MENTIONED + " " + ASK_KEYWORD;
     }
 
     @Override
+    public void handleMessage(Message message, Wechaty wechaty) {
+        switch (message.type()) {
+            case Text:
+                handleTextMessage(message, wechaty);
+                return;
+            case Image:
+                handleImageMessage(message, wechaty);
+                return;
+            case Contact:
+                handleContactMessage(message, wechaty);
+            default:
+                logger.info("unhandled message with type:" + message.type());
+                logger.info("unhandled message:" + message);
+        }
+    }
+
     public void handleTextMessage(Message message, Wechaty wechaty) {
         if (!checkTriggerFormat(message)) {
             return;
         } else {
             Contact from = message.from();
             Room room = message.room();
-            String text = mentionText(message);
-            if (text.toUpperCase().startsWith("添加keyword".toUpperCase())) {
-                createRecommendation(from, room, text);
-            } else if (text.toUpperCase().startsWith("删除keyword".toUpperCase())) {
-                deleteRecommendation(from, room, text);
-            } else if (text.toUpperCase().startsWith("KEYWORD")) {
-                listAllKeywords(from, room);
-            } else if (text.toUpperCase().startsWith("请问机器人")) {
-                doRecommendation(from, room, text, wechaty);
-            }
+            String question = extractQuestion(message.text(), ASK_KEYWORD);
+            doRecommendation(from, room, question, wechaty);
+
+            //if (text.toUpperCase().startsWith("添加keyword".toUpperCase())) {
+            //    createRecommendation(from, room, text);
+            //} else if (text.toUpperCase().startsWith("删除keyword".toUpperCase())) {
+            //    deleteRecommendation(from, room, text);
+            //} else if (text.toUpperCase().startsWith("KEYWORD")) {
+            //    listAllKeywords(from, room);
+            //} else if (text.toUpperCase().startsWith("请问")) {
+            //    doRecommendation(from, room, text, wechaty);
+            //}
 
         }
     }
@@ -76,12 +99,6 @@ public class RecommendationBot implements Bot {
         if (questions.size() > 0) {
             wechatReply(from, room, questions.toString());
         }
-    }
-
-    //temporarily replace wechaty-java mentionText function as it is not implemented in the library
-    private String mentionText(Message message) {
-        String text = message.text();
-        return StringUtils.strip(text.replaceAll("@[\\p{L}\\p{Digit}_]+", " ").trim());
     }
 
     private void deleteRecommendation(Contact from, Room room, String text) {
@@ -142,31 +159,37 @@ public class RecommendationBot implements Bot {
         }
     }
 
-    private void doRecommendation(Contact from, Room room, String text, Wechaty wechaty) {
-        String questionText = text.trim();
-        logger.info("questionText is :" + questionText);
+    private void doRecommendation(Contact from, Room room, String question, Wechaty wechaty) {
 
-        List<Recommendation> recommendations = recommendationDao.queryAll();
-
-        recommendations = recommendations.stream()
-                .filter(r -> text.toUpperCase().contains(r.getQuestion().toUpperCase()))
-                .collect(Collectors.toList());
-
-        if (recommendations.size() == 0) {
-            wechatReply(from, room, "试试 请问机器人 keyword ");
-        }
-
-        recommendations.forEach(recommendation -> {
-            if (MessageType.Text.equals(recommendation.getType())) {
-                wechatReply(from, room, String.format("%s by %s at %s",
-                        recommendation.getAnswer(), recommendation.getCreatedBy(),
-                        getDateTimeByTimestamp(recommendation.getCreationTimestamp())));
-            } else if (MessageType.Contact.equals(recommendation.getType())) {
-                Contact c = new Contact(wechaty, recommendation.getAnswer());
-                wechatReply(from, room, c);
-            }
-        });
+        String output = chatApi.getResponse(question);
+        wechatReply(from, room, output);
     }
+    //
+    //private void doRecommendation(Contact from, Room room, String text, Wechaty wechaty) {
+    //    String questionText = text.trim();
+    //    logger.info("questionText is :" + questionText);
+    //
+    //    List<Recommendation> recommendations = recommendationDao.queryAll();
+    //
+    //    recommendations = recommendations.stream()
+    //            .filter(r -> text.toUpperCase().contains(r.getQuestion().toUpperCase()))
+    //            .collect(Collectors.toList());
+    //
+    //    if (recommendations.size() == 0) {
+    //        wechatReply(from, room, "试试 请问机器人 keyword ");
+    //    }
+    //
+    //    recommendations.forEach(recommendation -> {
+    //        if (MessageType.Text.equals(recommendation.getType())) {
+    //            wechatReply(from, room, String.format("%s by %s at %s",
+    //                    recommendation.getAnswer(), recommendation.getCreatedBy(),
+    //                    getDateTimeByTimestamp(recommendation.getCreationTimestamp())));
+    //        } else if (MessageType.Contact.equals(recommendation.getType())) {
+    //            Contact c = new Contact(wechaty, recommendation.getAnswer());
+    //            wechatReply(from, room, c);
+    //        }
+    //    });
+    //}
 
     private boolean checkTriggerFormat(Message message) {
         //Comment out as java-wechaty is not support mentionList yet
@@ -190,7 +213,7 @@ public class RecommendationBot implements Bot {
         return isStartWithTriggerWord;
     }
 
-    @Override
+
     public void handleImageMessage(Message message, Wechaty wechaty) {
         return;
     }
@@ -250,7 +273,6 @@ public class RecommendationBot implements Bot {
     }
 
 
-    @Override
     public void handleContactMessage(Message message, Wechaty wechaty) {
 
     }

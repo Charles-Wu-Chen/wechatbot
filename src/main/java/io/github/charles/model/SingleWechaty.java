@@ -134,14 +134,14 @@ public final class SingleWechaty {
         List<Contact> contacts = bot.getContactManager().findAll(contactQueryFilter);
         contacts.stream()
                 .forEach(contact -> {
-            logger.info("is ready : " + contact.isReady());
-            logger.info(String.format("contact ID:%s, contact name:%s", contact.getId(), contact.name()));
-            if (!contact.isReady()) {
-                contact.sync();
-            } else if (contact.getId().equals("wxid_1194601945911")) {
-                contact.say(String.format("您的专属机器人 %s logged in at %s", contactSelf.name(), getCurrentDateTimeString()));
-            }
-        });
+                    logger.info("is ready : " + contact.isReady());
+                    logger.info(String.format("contact ID:%s, contact name:%s", contact.getId(), contact.name()));
+                    if (!contact.isReady()) {
+                        contact.sync();
+                    } else if (contact.getId().equals("wxid_1194601945911")) {
+                        contact.say(String.format("您的专属机器人 %s logged in at %s", contactSelf.name(), getCurrentDateTimeString()));
+                    }
+                });
 
         RoomQueryFilter roomQueryFilter = new RoomQueryFilter();
         List<Room> rooms = bot.getRoomManager().findAll(roomQueryFilter);
@@ -169,24 +169,29 @@ public final class SingleWechaty {
             }
         }
 
-        Bot roomMessageSyncBot = new RoomMessageSyncBot();
-        Bot recomendationBot = new RecommendationBot();
-        Bot dingDongBot = new DingDongBot();
-        switch (message.type()) {
-            case Text:
-                dingDongBot.handleTextMessage(message, wechaty);
-                roomMessageSyncBot.handleTextMessage(message, wechaty);
-                recomendationBot.handleTextMessage(message, wechaty);
-                return;
-            case Image:
-                roomMessageSyncBot.handleImageMessage(message, wechaty);
-                return;
-            case Contact:
-                roomMessageSyncBot.handleContactMessage(message, wechaty);
-            default:
-                logger.info("unhandled message with type:" + message.type());
-                logger.info("unhandled message:" + message);
+
+        if (fromRoom(message)) {
+            Bot roomMessageSyncBot = new RoomMessageSyncBot();
+            roomMessageSyncBot.handleMessage(message, wechaty);
+
+            Bot recomendationBot = new RecommendationBot();
+            recomendationBot.handleMessage(message, wechaty);
+        } else {
+            Bot dingDongBot = new DingDongBot();
+            dingDongBot.handleMessage(message, wechaty);
         }
+
+        //Bot recomendationBot = new RecommendationBot();
+        //recomendationBot.handleMessage(message, wechaty);
+
+
+
+    }
+
+    private static boolean fromRoom(Message message) {
+        Contact from = message.from();
+        Room room = message.room();
+        return room != null;
     }
 
     private static boolean shallSkipMessage(Message message, Contact from) {
@@ -227,20 +232,15 @@ public final class SingleWechaty {
             //room.say(message.toImage().artwork());
         } else {
             logger.info("message string:" + message.toString());
-                        Image image = message.toImage();
-                        logger.info("Image String" + image.toString());
-                        FileBox fileBox = image.artwork();
-                        logger.info("FileBox name:" + fileBox.getName());
-                        logger.info("FileBox url:" + fileBox.getRemoteUrl());
-                        logger.info("FileBox json:" + fileBox.toJsonString());
+            Image image = message.toImage();
+            logger.info("Image String" + image.toString());
+            FileBox fileBox = image.artwork();
+            logger.info("FileBox name:" + fileBox.getName());
+            logger.info("FileBox url:" + fileBox.getRemoteUrl());
+            logger.info("FileBox json:" + fileBox.toJsonString());
             from.say(fileBox);
         }
     }
-
-
-
-
-
 
 
 }

@@ -1,7 +1,6 @@
 package io.github.charles.bot.dao;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.document.*;
 import com.amazonaws.services.dynamodbv2.document.spec.DeleteItemSpec;
 import com.amazonaws.services.dynamodbv2.document.spec.QuerySpec;
@@ -34,9 +33,9 @@ public class RecommendationDao {
     private static Logger logger = LoggerFactory.getLogger(RecommendationDao.class);
 
     public RecommendationDao() {
-        client = AmazonDynamoDBClientBuilder.defaultClient();
-        dynamoDB = new DynamoDB(client);
-        table = dynamoDB.getTable(TABLE_NAME);
+        //client = AmazonDynamoDBClientBuilder.defaultClient();
+        //dynamoDB = new DynamoDB(client);
+        //table = dynamoDB.getTable(TABLE_NAME);
     }
 
     public List<Recommendation> queryByKeyword(String question) {
