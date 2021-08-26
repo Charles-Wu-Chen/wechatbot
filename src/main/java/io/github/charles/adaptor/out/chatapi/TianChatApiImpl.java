@@ -13,11 +13,13 @@ public class TianChatApiImpl implements ChatApiPort {
 
     @Override
     public String getResponse(String input) {
-
+        //priv=2 私有词库模糊匹配模式
         TianResponseDTO result = client.get()
                 .uri(builder -> builder
                         .queryParam("key", KEY)
                         .queryParam("question", input)
+                        .queryParam("priv", 2)
+                        .queryParam("mode", 1)
                         .build())
                 .retrieve()
                 .bodyToMono(TianResponseDTO.class)
@@ -28,6 +30,6 @@ public class TianChatApiImpl implements ChatApiPort {
 
     public static void main(String[] args) {
         TianChatApiImpl t = new TianChatApiImpl();
-        System.out.println(t.getResponse("robot"));
+        System.out.println(t.getResponse("房屋中介"));
     }
 }

@@ -59,17 +59,15 @@ public class RoomMessageSyncBot implements Bot {
         Contact from = message.from();
         Room room = message.room();
 
-        if (room == null) {
+
             Image image = message.toImage();
             logger.info("Image String" + image.toString());
             FileBox fileBox = image.artwork();
             logger.info("FileBox name:" + fileBox.getName());
             logger.info("FileBox box type:" + fileBox.getBoxType());
             logger.info("FileBox base64:" + fileBox.getBase64());
-            //FileBox.fromJson(fileBox);
-            Message m = from.say(fileBox);
-            logger.info(String.valueOf(m));
-        }
+
+
 
         getMessageRoutes().stream()
                 .filter(messageRoute -> messageRoute.getSourceName().equals(getTopicByRoom(room)))

@@ -160,8 +160,9 @@ public class RecommendationBot implements Bot {
     }
 
     private void doRecommendation(Contact from, Room room, String question, Wechaty wechaty) {
-
+        logger.info("Sending tianapi with question:" + question);
         String output = chatApi.getResponse(question);
+        logger.info("received tianapi with answer:" + output);
         wechatReply(from, room, output);
     }
     //
